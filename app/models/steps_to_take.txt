@@ -1,0 +1,70 @@
+download empty Sinatra skeleton
+
+bundle
+
+create the database
+rake db:create
+
+create the model
+  rake generate:model NAME=Url
+
+create the migration
+  rake generate:migration NAME=create_urls
+
+add fields to the table in the migration file using
+  class CreateUrls < ActiveRecord::Migration
+  def change
+    create_table :urls do |t|
+      t.string :long_url
+      t.string :short_url
+      t.integer :click_counts
+
+      t.timestamps
+    end
+  end
+end
+
+add ActiveRecord validations to the model 
+A valid URL is...
+  Any non-empty string
+  Any non-empty string that starts with "http://" or "https://"
+  Any string that the Ruby URI module says is valid
+  Any URL-looking thing which responds to a HTTP request, i.e., we actually check to see if the URL is accessible via HTTP
+
+  class User
+  validates_format_of :website, :with => URI::regexp(%w(http https))
+end
+
+
+OR:
+  Take this code:
+
+          class UrlValidator < ActiveModel::EachValidator
+            def validate_each(record, attribute, value)
+              record.errors[attribute] << (options[:message] || "must be a valid URL") unless url_valid?(value)    
+            end
+
+            # a URL may be technically well-formed but may 
+            # not actually be valid, so this checks for both.
+            def url_valid?(url)
+              url = URI.parse(url) rescue false
+              url.kind_of?(URI::HTTP) || url.kind_of?(URI::HTTPS)
+            end 
+          end
+          Save it in your app directory so it's autoloaded, eg:
+
+          app/validators/url_validator.rb
+          And use it in your model thus:
+
+          class Something < ActiveRecord::Base
+              validates :link, url: true
+          end
+
+  from: https://coderwall.com/p/ztig5g        
+
+
+  class Person < ActiveRecord::Base
+  validates_format_of :email, with: /\A([^@\s]+)@((?:[-a-z0-9]+\.)+[a-z]{2,})\z/, on: :create
+  validates_format_of :long_url, with: /\A([^@\s]+)@((?:[-a-z0-9]+\.)+[a-z]{2,})\z/, on: :create
+
+end
